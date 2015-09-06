@@ -51,7 +51,7 @@ var (
 func init() {
 	tmpDir = filepath.Join(os.TempDir(), "debmaker")
 	if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-		fmt.Println("Fatal:", err)
+		fmt.Println("Failed to create tempory directory %s, %v", tmpDir, err)
 		os.Exit(1)
 	}
 }
@@ -136,14 +136,14 @@ func main() {
 
 	debSpec, err := loadSpec()
 	if err != nil {
-		fmt.Printf("Failed to load spec file, %v.", err)
+		fmt.Printf("Failed to load spec file, %v.\n", err)
 		os.Exit(1)
 	}
 
 	dfn := fmt.Sprintf("%s_%s_%s.deb", debSpec.DebCtrl.PkgName, *version, *arch)
 	deb, err := os.Create(filepath.Join(*outputDir, dfn))
 	if err != nil {
-		fmt.Printf("Failed to create the deb file, %v.", err)
+		fmt.Printf("Failed to create the deb file, %v.\n", err)
 		os.Exit(1)
 	}
 	defer deb.Close()
@@ -152,19 +152,19 @@ func main() {
 	arw := ar.NewWriter(deb)
 	err = arw.WriteGlobalHeader()
 	if err != nil {
-		fmt.Printf("Failed to write global header, %v.", err)
+		fmt.Printf("Failed to write global header, %v.\n", err)
 		os.Exit(1)
 	}
 
 	// Add debian-binary file
 	if err = addDebBinary(arw); err != nil {
-		fmt.Printf("Failed to debian-binary to deb file, %v.", err)
+		fmt.Printf("Failed to debian-binary to deb file, %v.\n", err)
 		os.Exit(1)
 	}
 
 	// Fill file info
 	if c, err := fillFileInfo(debSpec.Content); err != nil {
-		fmt.Printf("Failed to collect the content tree, %v.", err)
+		fmt.Printf("Failed to collect the content tree, %v.\n", err)
 		os.Exit(1)
 	} else {
 		debSpec.Content = c
@@ -172,13 +172,13 @@ func main() {
 
 	// Add control.tar.gz
 	if err = addControlFiles(arw, debSpec); err != nil {
-		fmt.Printf("Failed to add control.tar.gz to deb file, %v.", err)
+		fmt.Printf("Failed to add control.tar.gz to deb file, %v.\n", err)
 		os.Exit(1)
 	}
 
 	// Add data.tar.gz
 	if err = addContentFiles(arw, debSpec.Content); err != nil {
-		fmt.Printf("Failed to add data.tar.gz to deb file, %v.", err)
+		fmt.Printf("Failed to add data.tar.gz to deb file, %v.\n", err)
 		os.Exit(1)
 	}
 

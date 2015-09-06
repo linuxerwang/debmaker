@@ -71,6 +71,7 @@ func NewDirFileInfo(name string) *dirFileInfo {
 func fillFileInfo(contentFiles []*FileEntry) ([]*FileEntry, error) {
 	newDirs := []*FileEntry{}
 	newFiles := []*FileEntry{}
+	newSymlinks := []*FileEntry{}
 
 	pdirs := NewDirCache()
 
@@ -95,6 +96,9 @@ func fillFileInfo(contentFiles []*FileEntry) ([]*FileEntry, error) {
 				if info.IsDir() {
 					relpath, err := filepath.Rel(f.Path, path)
 					if err != nil {
+						if *verbose {
+							fmt.Printf("Failed to get relative path for %s against %s.", path, f.Path)
+						}
 						return err
 					}
 
@@ -111,6 +115,9 @@ func fillFileInfo(contentFiles []*FileEntry) ([]*FileEntry, error) {
 
 				relpath, err := filepath.Rel(f.Path, path)
 				if err != nil {
+					if *verbose {
+						fmt.Printf("Failed to get relative path for %s against %s.", path, f.Path)
+					}
 					return err
 				}
 
@@ -124,12 +131,19 @@ func fillFileInfo(contentFiles []*FileEntry) ([]*FileEntry, error) {
 					return err
 				}
 
-				newFiles = append(newFiles, fe)
+				if info.Mode()&os.ModeSymlink != 0 {
+					newSymlinks = append(newSymlinks, fe)
+				} else {
+					newFiles = append(newFiles, fe)
+				}
 				return nil
 			})
 			if err != nil {
 				return nil, err
 			}
+		} else if fi.Mode()&os.ModeSymlink != 0 {
+			f.FileInfo = fi
+			newSymlinks = append(newSymlinks, f)
 		} else {
 			f.FileInfo = fi
 			if err = fillMd5Sum(f); err != nil {
@@ -140,7 +154,7 @@ func fillFileInfo(contentFiles []*FileEntry) ([]*FileEntry, error) {
 		}
 	}
 
-	return append(newDirs, newFiles...), nil
+	return append(append(newDirs, newFiles...), newSymlinks...), nil
 }
 
 // fillMd5Sum fills the md5sum of the given content file entry.
@@ -172,6 +186,9 @@ func calculateMd5sum(path string, size int64) (string, error) {
 	for n = 0; n < size; {
 		num, err = f.Read(buffer)
 		if err != nil {
+			if *verbose {
+				fmt.Printf("Failed to read from file %s.", path, path)
+			}
 			return "", err
 		}
 
