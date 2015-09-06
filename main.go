@@ -12,6 +12,7 @@ import (
 	"github.com/linuxerwang/confish"
 )
 
+// DebControl specifies the attributes of a deb control file.
 type DebControl struct {
 	PkgName    string            `cfg-attr:"pkg-name"`
 	Maintainer string            `cfg-attr:"maintainer"`
@@ -31,11 +32,18 @@ type FileEntry struct {
 	Md5sum   string
 }
 
+// Symlink specifies an absolute symbolic link for data files.
+type Symlink struct {
+	From string `cfg-attr:"from"`
+	To   string `cfg-attr:"to"`
+}
+
 // DebSpec specifies the whole deb structure: control files and data files.
 type DebSpec struct {
 	DebCtrl *DebControl  `cfg-attr:"control"`
 	Debian  []*FileEntry `cfg-attr:"debian"`
 	Content []*FileEntry `cfg-attr:"content"`
+	Link    []*Symlink   `cfg-attr:"link"`
 }
 
 var (
@@ -51,7 +59,7 @@ var (
 func init() {
 	tmpDir = filepath.Join(os.TempDir(), "debmaker")
 	if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-		fmt.Println("Failed to create tempory directory %s, %v", tmpDir, err)
+		fmt.Printf("Failed to create tempory directory %s, %v.\n", tmpDir, err)
 		os.Exit(1)
 	}
 }
@@ -177,7 +185,7 @@ func main() {
 	}
 
 	// Add data.tar.gz
-	if err = addContentFiles(arw, debSpec.Content); err != nil {
+	if err = addContentFiles(arw, debSpec); err != nil {
 		fmt.Printf("Failed to add data.tar.gz to deb file, %v.\n", err)
 		os.Exit(1)
 	}

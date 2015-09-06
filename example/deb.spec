@@ -24,4 +24,9 @@ deb-spec {
 		path: "example/scripts"
 		deb-path: "usr/share/myapp/scripts"
 	}
+
+	link {
+		from: "/usr/share/myapp/scripts/processor.js"
+		to: "/usr/share/myapp/scripts/processor-firefox.js"
+	}
 }

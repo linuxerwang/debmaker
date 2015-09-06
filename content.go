@@ -15,12 +15,12 @@ import (
 )
 
 const (
-	c_ISLNK = 0120000 // Symbolic link
+	isLink  = 0120000 // Symbolic link
 	dataTgz = "data.tar.gz"
 )
 
-func addContentFiles(arw *ar.Writer, files []*FileEntry) error {
-	if err := createDataTgz(files); err != nil {
+func addContentFiles(arw *ar.Writer, debSpec *DebSpec) error {
+	if err := createDataTgz(debSpec); err != nil {
 		return err
 	}
 
@@ -51,7 +51,7 @@ func addContentFiles(arw *ar.Writer, files []*FileEntry) error {
 	}
 	if _, err := io.Copy(arw, f); err != nil {
 		if *verbose {
-			fmt.Println("Failed to copy %s to deb file.", dataTgz)
+			fmt.Printf("Failed to copy %s to deb file.\n", dataTgz)
 		}
 		return err
 	}
@@ -61,7 +61,7 @@ func addContentFiles(arw *ar.Writer, files []*FileEntry) error {
 	return nil
 }
 
-func createDataTgz(files []*FileEntry) error {
+func createDataTgz(debSpec *DebSpec) error {
 	tmpData := filepath.Join(tmpDir, dataTgz)
 	f, err := os.Create(tmpData)
 	if err != nil {
@@ -75,8 +75,8 @@ func createDataTgz(files []*FileEntry) error {
 	w := tar.NewWriter(gz)
 	defer w.Close()
 
-	// Write other data files
-	for _, df := range files {
+	// Write data files
+	for _, df := range debSpec.Content {
 		info := df.FileInfo
 
 		hdr := &tar.Header{
@@ -96,17 +96,17 @@ func createDataTgz(files []*FileEntry) error {
 			// Handle symlink
 			hdr.Size = 0
 			hdr.Typeflag |= tar.TypeSymlink
-			hdr.Mode |= c_ISLNK
+			hdr.Mode |= isLink
 
 			l, err := os.Open(df.Path)
 			if err != nil {
-				fmt.Println("Failed to open symlink %s, %v", df.Path, err)
+				fmt.Printf("Failed to open symlink %s, %v.\n", df.Path, err)
 				os.Exit(1)
 			}
 			b, err := ioutil.ReadAll(l)
 			l.Close()
 			if err != nil {
-				fmt.Println("Failed to close symlink %s, %v", df.Path, err)
+				fmt.Printf("Failed to close symlink %s, %v.\n", df.Path, err)
 				os.Exit(1)
 			}
 
@@ -160,6 +160,24 @@ func createDataTgz(files []*FileEntry) error {
 
 		if *verbose {
 			fmt.Printf("Added file %s to %s.\n", df.DebPath, dataTgz)
+		}
+	}
+
+	// Write symlinks
+	for _, l := range debSpec.Link {
+		hdr := &tar.Header{
+			Typeflag: tar.TypeSymlink,
+			Name:     l.To,
+			Mode:     0755 | isLink,
+			ModTime:  time.Now(),
+			Linkname: l.From,
+			Size:     0,
+		}
+		if err := w.WriteHeader(hdr); err != nil {
+			if *verbose {
+				fmt.Printf("Failed to write header for symlink %s.\n", l.To)
+			}
+			return err
 		}
 	}
 
