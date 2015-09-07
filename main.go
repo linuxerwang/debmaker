@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/linuxerwang/ar"
@@ -80,8 +82,12 @@ func checkFlags() {
 		os.Exit(1)
 	}
 	if *arch == "" {
-		fmt.Println("FATAL: flag arch is required.")
-		os.Exit(1)
+		out, err := exec.Command("dpkg", "--print-architecture").Output()
+		if err != nil {
+			fmt.Println("Failed to run \"dpkg --print-architecture\"")
+			os.Exit(1)
+		}
+		*arch = strings.TrimSpace(string(out))
 	}
 }
 
