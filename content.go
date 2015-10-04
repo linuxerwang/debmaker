@@ -81,8 +81,18 @@ func createDataTgz(debSpec *DebSpec) error {
 
 		hdr := &tar.Header{
 			Name:    df.DebPath,
-			Mode:    int64(info.Mode().Perm()),
+			Mode:    0644,
 			ModTime: info.ModTime(),
+		}
+		perm := info.Mode().Perm()
+		if perm&0001 > 0 {
+			hdr.Mode |= 0001
+		}
+		if perm&0010 > 0 {
+			hdr.Mode |= 0010
+		}
+		if perm&0100 > 0 {
+			hdr.Mode |= 0100
 		}
 		if info.IsDir() {
 			// Handle directory
