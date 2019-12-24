@@ -47,7 +47,7 @@ func addControlFiles(arw *ar.Writer, debSpec *DebSpec) error {
 	}
 	if _, err := io.Copy(arw, f); err != nil {
 		if *verbose {
-			fmt.Printf("Failed to copy %s to deb file.\n", ctrlTgz)
+			fmt.Printf("Failed to copy %s to deb file: %v.\n", ctrlTgz, err)
 		}
 		return err
 	}
