@@ -15,7 +15,7 @@ deb-spec {
 		deb-path: "preinst"
 	}
 
-	content {
+	content { # Note that dep-path can't start with /
 		path: "example/README.txt"
 		deb-path: "usr/share/myapp/README"
 	}

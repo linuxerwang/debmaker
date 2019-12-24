@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 )
 
@@ -22,12 +23,13 @@ func NewDirCache() *dirCache {
 
 func (dc *dirCache) parse(path string) []string {
 	dirs := []string{}
-	for d := filepath.Dir(path); d != "/" && d != "."; d = filepath.Dir(d) {
-		if _, ok := dc.cache[path]; ok {
+	for d := path; d != "/" && d != "."; d = filepath.Dir(d) {
+		if _, ok := dc.cache[d]; ok {
 			break
 		}
 
-		dirs = append([]string{d}, dirs...)
+		dc.cache[d] = struct{}{}
+		dirs = append(dirs, d)
 	}
 	return dirs
 }
@@ -151,9 +153,23 @@ func fillFileInfo(contentFiles []*FileEntry) ([]*FileEntry, error) {
 			}
 
 			newFiles = append(newFiles, f)
+
+			// Make sure the file's directory exists.
+			for _, d := range pdirs.parse(filepath.Dir(f.DebPath)) {
+				de := &FileEntry{
+					Path:     "",
+					DebPath:  d,
+					FileInfo: NewDirFileInfo(d),
+				}
+
+				newDirs = append(newDirs, de)
+			}
 		}
 	}
 
+	sort.Slice(newDirs, func(i, j int) bool {
+		return newDirs[i].DebPath < newDirs[j].DebPath
+	})
 	return append(append(newDirs, newFiles...), newSymlinks...), nil
 }
 
