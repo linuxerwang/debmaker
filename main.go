@@ -61,6 +61,7 @@ type tmplVars struct {
 var (
 	outputDir = flag.String("output-dir", ".", "The output directory for the deb file, defaults to current working directory.")
 	spec      = flag.String("spec-file", "", "The spec file in confish format. If not specified, read from stdin.")
+	desc      = flag.String("desc", "", "The description of the deb file.")
 	version   = flag.String("version", "", "The version of the deb file.")
 	arch      = flag.String("arch", "", "The architecture of the deb file.")
 	verbose   = flag.Bool("v", false, "Output verbose message.")
@@ -173,6 +174,7 @@ func loadSpec() (*DebSpec, error) {
 
 	debSpec.DebCtrl.Arch = *arch
 	debSpec.DebCtrl.Version = *version
+	debSpec.DebCtrl.Desc = *desc
 
 	return &debSpec, nil
 }
