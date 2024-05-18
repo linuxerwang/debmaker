@@ -83,17 +83,17 @@ func fillFileInfo(contentFiles []*FileEntry) ([]*FileEntry, error) {
 			return nil, err
 		}
 
-		if fi.IsDir() {
-			for _, d := range pdirs.parse(f.DebPath) {
-				de := &FileEntry{
-					Path:     "",
-					DebPath:  d,
-					FileInfo: NewDirFileInfo(d),
-				}
-
-				newDirs = append(newDirs, de)
+		for _, d := range pdirs.parse(f.DebPath) {
+			de := &FileEntry{
+				Path:     "",
+				DebPath:  d,
+				FileInfo: NewDirFileInfo(d),
 			}
 
+			newDirs = append(newDirs, de)
+		}
+
+		if fi.IsDir() {
 			err := filepath.Walk(f.Path, func(path string, info os.FileInfo, err error) error {
 				if info.IsDir() {
 					relpath, err := filepath.Rel(f.Path, path)
@@ -110,8 +110,9 @@ func fillFileInfo(contentFiles []*FileEntry) ([]*FileEntry, error) {
 						FileInfo: info,
 					}
 
-					newDirs = append(newDirs, de)
-
+					if _, ok := pdirs.cache[de.DebPath]; !ok {
+						newDirs = append(newDirs, de)
+					}
 					return nil
 				}
 
