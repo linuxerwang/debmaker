@@ -1,4 +1,4 @@
-package main
+package debmaker
 
 import (
 	"archive/tar"
@@ -19,8 +19,8 @@ const (
 	dataTgz = "data.tar.gz"
 )
 
-func addContentFiles(arw *ar.Writer, debSpec *DebSpec) error {
-	if err := createDataTgz(debSpec); err != nil {
+func AddContentFiles(arw *ar.Writer, debSpec *DebSpec, tmpDir string, verbose bool) error {
+	if err := createDataTgz(debSpec, tmpDir, verbose); err != nil {
 		return err
 	}
 
@@ -44,13 +44,13 @@ func addContentFiles(arw *ar.Writer, debSpec *DebSpec) error {
 		Mode:    0777,
 	}
 	if err := arw.WriteHeader(hdr); err != nil {
-		if *verbose {
+		if verbose {
 			fmt.Printf("Failed to write header for %s.\n", dataTgz)
 		}
 		return err
 	}
 	if _, err := io.Copy(arw, f); err != nil {
-		if *verbose {
+		if verbose {
 			fmt.Printf("Failed to copy %s to deb file.\n", dataTgz)
 		}
 		return err
@@ -61,7 +61,7 @@ func addContentFiles(arw *ar.Writer, debSpec *DebSpec) error {
 	return nil
 }
 
-func createDataTgz(debSpec *DebSpec) error {
+func createDataTgz(debSpec *DebSpec, tmpDir string, verbose bool) error {
 	tmpData := filepath.Join(tmpDir, dataTgz)
 	f, err := os.Create(tmpData)
 	if err != nil {
@@ -126,18 +126,18 @@ func createDataTgz(debSpec *DebSpec) error {
 		}
 
 		if err := w.WriteHeader(hdr); err != nil {
-			if *verbose {
+			if verbose {
 				fmt.Printf("Failed to write header for file %s.\n", info.Name())
 			}
 			return err
 		}
 		if info.IsDir() {
-			if *verbose {
+			if verbose {
 				fmt.Printf("Added directory %s to %s.\n", df.DebPath, dataTgz)
 			}
 			continue
 		} else if info.Mode()&os.ModeSymlink != 0 {
-			if *verbose {
+			if verbose {
 				fmt.Printf("Added symlink %s to %s.\n", df.DebPath, dataTgz)
 			}
 			continue
@@ -146,7 +146,7 @@ func createDataTgz(debSpec *DebSpec) error {
 		// Note that the opened file has to be closed explicitly
 		in, err := os.Open(df.Path)
 		if err != nil {
-			if *verbose {
+			if verbose {
 				fmt.Printf("Failed to open file %s.\n", df.Path)
 			}
 			return err
@@ -154,7 +154,7 @@ func createDataTgz(debSpec *DebSpec) error {
 
 		_, err = io.Copy(w, in)
 		if err != nil {
-			if *verbose {
+			if verbose {
 				fmt.Printf("Failed to copy content from %s to %s.\n", df.Path, dataTgz)
 			}
 			in.Close()
@@ -162,13 +162,13 @@ func createDataTgz(debSpec *DebSpec) error {
 		}
 
 		if err = in.Close(); err != nil {
-			if *verbose {
+			if verbose {
 				fmt.Printf("Failed to close file %s.\n", df.Path)
 			}
 			return err
 		}
 
-		if *verbose {
+		if verbose {
 			fmt.Printf("Added file %s to %s.\n", df.DebPath, dataTgz)
 		}
 	}
@@ -184,7 +184,7 @@ func createDataTgz(debSpec *DebSpec) error {
 			Size:     0,
 		}
 		if err := w.WriteHeader(hdr); err != nil {
-			if *verbose {
+			if verbose {
 				fmt.Printf("Failed to write header for symlink %s.\n", l.To)
 			}
 			return err

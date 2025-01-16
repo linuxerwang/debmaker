@@ -1,4 +1,4 @@
-package main
+package debmaker
 
 import (
 	"crypto/md5"
@@ -68,9 +68,9 @@ func NewDirFileInfo(name string) *dirFileInfo {
 	}
 }
 
-// fillFileInfo fills in the FileInfo field of each content file entry and returns the new file slice.
+// FillFileInfo fills in the FileInfo field of each content file entry and returns the new file slice.
 // For directories, it recursively walk the tree to collect each directory or file.
-func fillFileInfo(contentFiles []*FileEntry) ([]*FileEntry, error) {
+func FillFileInfo(contentFiles []*FileEntry, verbose bool) ([]*FileEntry, error) {
 	newDirs := []*FileEntry{}
 	newFiles := []*FileEntry{}
 	newSymlinks := []*FileEntry{}
@@ -88,7 +88,7 @@ func fillFileInfo(contentFiles []*FileEntry) ([]*FileEntry, error) {
 				if info.IsDir() {
 					relpath, err := filepath.Rel(f.Path, path)
 					if err != nil {
-						if *verbose {
+						if verbose {
 							fmt.Printf("Failed to get relative path for %s against %s.", path, f.Path)
 						}
 						return err
@@ -108,7 +108,7 @@ func fillFileInfo(contentFiles []*FileEntry) ([]*FileEntry, error) {
 
 				relpath, err := filepath.Rel(f.Path, path)
 				if err != nil {
-					if *verbose {
+					if verbose {
 						fmt.Printf("Failed to get relative path for %s against %s.", path, f.Path)
 					}
 					return err
@@ -120,7 +120,7 @@ func fillFileInfo(contentFiles []*FileEntry) ([]*FileEntry, error) {
 					FileInfo: info,
 				}
 
-				if err = fillMd5Sum(fe); err != nil {
+				if err = fillMd5Sum(fe, verbose); err != nil {
 					return err
 				}
 
@@ -139,7 +139,7 @@ func fillFileInfo(contentFiles []*FileEntry) ([]*FileEntry, error) {
 			newSymlinks = append(newSymlinks, f)
 		} else {
 			f.FileInfo = fi
-			if err = fillMd5Sum(f); err != nil {
+			if err = fillMd5Sum(f, verbose); err != nil {
 				return nil, err
 			}
 
@@ -165,11 +165,11 @@ func fillFileInfo(contentFiles []*FileEntry) ([]*FileEntry, error) {
 }
 
 // fillMd5Sum fills the md5sum of the given content file entry.
-func fillMd5Sum(cf *FileEntry) error {
+func fillMd5Sum(cf *FileEntry, verbose bool) error {
 	var md5sum string
 	var err error
 	if cf.FileInfo.Mode()&os.ModeSymlink != os.ModeSymlink {
-		if md5sum, err = calculateMd5sum(cf.Path, cf.FileInfo.Size()); err != nil {
+		if md5sum, err = calculateMd5sum(cf.Path, cf.FileInfo.Size(), verbose); err != nil {
 			return err
 		}
 		cf.Md5sum = md5sum
@@ -179,7 +179,7 @@ func fillMd5Sum(cf *FileEntry) error {
 }
 
 // calcMd5Sum calculates the md5sum of the given file.
-func calculateMd5sum(path string, size int64) (string, error) {
+func calculateMd5sum(path string, size int64, verbose bool) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return "", err
@@ -193,7 +193,7 @@ func calculateMd5sum(path string, size int64) (string, error) {
 	for n = 0; n < size; {
 		num, err = f.Read(buffer)
 		if err != nil {
-			if *verbose {
+			if verbose {
 				fmt.Printf("Failed to read from file %s.", path, path)
 			}
 			return "", err

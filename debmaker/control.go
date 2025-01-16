@@ -1,4 +1,4 @@
-package main
+package debmaker
 
 import (
 	"archive/tar"
@@ -15,8 +15,8 @@ import (
 
 const ctrlTgz = "control.tar.gz"
 
-func addControlFiles(arw *ar.Writer, debSpec *DebSpec) error {
-	if err := createControlTgz(debSpec); err != nil {
+func AddControlFiles(arw *ar.Writer, debSpec *DebSpec, tmpDir string, verbose bool) error {
+	if err := createControlTgz(debSpec, tmpDir, verbose); err != nil {
 		return err
 	}
 
@@ -40,13 +40,13 @@ func addControlFiles(arw *ar.Writer, debSpec *DebSpec) error {
 		Mode:    0777,
 	}
 	if err := arw.WriteHeader(hdr); err != nil {
-		if *verbose {
+		if verbose {
 			fmt.Printf("Failed to write header for %s\n.", ctrlTgz)
 		}
 		return err
 	}
 	if _, err := io.Copy(arw, f); err != nil {
-		if *verbose {
+		if verbose {
 			fmt.Printf("Failed to copy %s to deb file: %v.\n", ctrlTgz, err)
 		}
 		return err
@@ -57,7 +57,7 @@ func addControlFiles(arw *ar.Writer, debSpec *DebSpec) error {
 	return nil
 }
 
-func createControlTgz(debSpec *DebSpec) error {
+func createControlTgz(debSpec *DebSpec, tmpDir string, verbose bool) error {
 	tmpConl := filepath.Join(tmpDir, ctrlTgz)
 	f, err := os.Create(tmpConl)
 	if err != nil {
@@ -91,19 +91,19 @@ func createControlTgz(debSpec *DebSpec) error {
 		Size: int64(buf.Len()),
 	}
 	if err := w.WriteHeader(hdr); err != nil {
-		if *verbose {
+		if verbose {
 			fmt.Printf("Failed to write header for %s\n.", ctrlTgz)
 		}
 		return err
 	}
 	_, err = io.WriteString(w, buf.String())
 	if err != nil {
-		if *verbose {
+		if verbose {
 			fmt.Printf("Failed to write header for %s\n.", ctrlTgz)
 		}
 		return err
 	}
-	if *verbose {
+	if verbose {
 		fmt.Printf("Added file control to %s.\n", ctrlTgz)
 	}
 
@@ -118,12 +118,12 @@ func createControlTgz(debSpec *DebSpec) error {
 	}
 	_, err = io.WriteString(w, md5sums)
 	if err != nil {
-		if *verbose {
+		if verbose {
 			fmt.Println("Failed to create md5sums.")
 		}
 		return err
 	}
-	if *verbose {
+	if verbose {
 		fmt.Printf("Added file md5sums to %s.\n", ctrlTgz)
 	}
 
@@ -141,7 +141,7 @@ func createControlTgz(debSpec *DebSpec) error {
 			ModTime: info.ModTime(),
 		}
 		if err := w.WriteHeader(hdr); err != nil {
-			if *verbose {
+			if verbose {
 				fmt.Printf("Failed to write header for %s\n.", ctrlTgz)
 			}
 			return err
@@ -150,7 +150,7 @@ func createControlTgz(debSpec *DebSpec) error {
 		// Note that the opened file has to be closed explicitly
 		in, err := os.Open(cf.Path)
 		if err != nil {
-			if *verbose {
+			if verbose {
 				fmt.Printf("Failed to open file %s\n.", cf.Path)
 			}
 			return err
@@ -158,7 +158,7 @@ func createControlTgz(debSpec *DebSpec) error {
 
 		_, err = io.Copy(w, in)
 		if err != nil {
-			if *verbose {
+			if verbose {
 				fmt.Printf("Failed to copy content from file %s to %s.\n", cf.Path, ctrlTgz)
 			}
 			in.Close()
@@ -169,7 +169,7 @@ func createControlTgz(debSpec *DebSpec) error {
 			return err
 		}
 
-		if *verbose {
+		if verbose {
 			fmt.Printf("Added file %s to %s.\n", cf.DebPath, ctrlTgz)
 		}
 	}
